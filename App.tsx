@@ -8,7 +8,7 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -18,7 +18,7 @@ import {
   useColorScheme,
   View,
 } from 'react-native';
-
+import * as RNIap from 'react-native-iap';
 import {
   Colors,
   DebugInstructions,
@@ -61,6 +61,16 @@ const App = () => {
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
+
+  useEffect(() => {
+    RNIap.initConnection()
+      .then(() => {
+        console.log('Initialized IAP connection!');
+      })
+      .catch(err => {
+        console.log('Failed to initialize IAP connection:', err);
+      });
+  }, []);
 
   return (
     <SafeAreaView style={backgroundStyle}>
