@@ -8,7 +8,7 @@
  * @format
  */
 
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -62,10 +62,21 @@ const App = () => {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
+  const [subscriptions, setSubscriptions] = useState<
+    RNIap.Subscription[] | null
+  >(null);
+
   useEffect(() => {
     RNIap.initConnection()
       .then(() => {
         console.log('Initialized IAP connection!');
+      })
+      .then(() => {
+        return RNIap.getSubscriptions(['some_feature_subscription']);
+      })
+      .then(subscriptions => {
+        console.log('Subscriptions', subscriptions);
+        setSubscriptions(subscriptions);
       })
       .catch(err => {
         console.log('Failed to initialize IAP connection:', err);
@@ -83,6 +94,7 @@ const App = () => {
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
+          <Text>Subscriptions: {JSON.stringify(subscriptions)}</Text>
           <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.
