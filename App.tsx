@@ -10,6 +10,8 @@
 
 import React, {useEffect, useState} from 'react';
 import {
+  Button,
+  Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -55,16 +57,24 @@ const Section: React.FC<{
   );
 };
 
-const App = () => {
-  const isDarkMode = useColorScheme() === 'dark';
+const monospaceFont = Platform.select({
+  ios: 'Courier',
+  android: 'monospace',
+});
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
+const Subscriptions: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<
     RNIap.Subscription[] | null
   >(null);
+
+  const [requestedSubscription, setRequestedSubscription] =
+    useState<RNIap.SubscriptionPurchase | null>(null);
+
+  const [requestedSubscriptionLoading, setRequestedSubscriptionLoading] =
+    useState<boolean>(false);
+
+  const [requestedSubscriptionError, setRequestedSubscriptionError] =
+    useState<Error | null>(null);
 
   useEffect(() => {
     RNIap.initConnection()
@@ -84,6 +94,59 @@ const App = () => {
   }, []);
 
   return (
+    <View>
+      <View>
+        <Text style={{fontSize: 24, textAlign: 'center'}}>
+          Subscriptions List
+        </Text>
+        <Text>Subscriptions:</Text>
+        <Text style={{fontSize: 12, fontFamily: monospaceFont}}>
+          {JSON.stringify(subscriptions, null, 2)}
+        </Text>
+      </View>
+      <View>
+        {subscriptions && (
+          <Button
+            title="Request subscription"
+            onPress={() => {
+              setRequestedSubscriptionLoading(true);
+              RNIap.requestSubscription('some_feature_subscription')
+                .then(subscription => {
+                  setRequestedSubscription(subscription);
+                })
+                .catch(err => {
+                  setRequestedSubscriptionError(err);
+                })
+                .finally(() => {
+                  setRequestedSubscriptionLoading(false);
+                });
+            }}></Button>
+        )}
+        {requestedSubscription && (
+          <Text style={{color: 'green'}}>
+            Requested subscription:{' '}
+            {JSON.stringify(requestedSubscription, null, 2)}
+          </Text>
+        )}
+        {requestedSubscriptionError && (
+          <Text style={{color: 'red'}}>
+            Error: {requestedSubscriptionError.name}{' '}
+            {requestedSubscriptionError.message}
+          </Text>
+        )}
+      </View>
+    </View>
+  );
+};
+
+const App = () => {
+  const isDarkMode = useColorScheme() === 'dark';
+
+  const backgroundStyle = {
+    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  };
+
+  return (
     <SafeAreaView style={backgroundStyle}>
       <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ScrollView
@@ -94,7 +157,8 @@ const App = () => {
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
-          <Text>Subscriptions: {JSON.stringify(subscriptions)}</Text>
+          <Subscriptions />
+
           <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.
