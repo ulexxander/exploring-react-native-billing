@@ -82,7 +82,7 @@ const Subscriptions: React.FC = () => {
         console.log('Initialized IAP connection!');
       })
       .then(() => {
-        return RNIap.getSubscriptions(['some_feature_subscription']);
+        return RNIap.getSubscriptions(['another_subscription']);
       })
       .then(subscriptions => {
         console.log('Subscriptions', subscriptions);
@@ -110,7 +110,8 @@ const Subscriptions: React.FC = () => {
             title="Request subscription"
             onPress={() => {
               setRequestedSubscriptionLoading(true);
-              RNIap.requestSubscription('some_feature_subscription')
+              // TODO: obfuscated account / profile id?
+              RNIap.requestSubscription('another_subscription')
                 .then(subscription => {
                   setRequestedSubscription(subscription);
                 })
