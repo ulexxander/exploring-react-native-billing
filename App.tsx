@@ -11,6 +11,7 @@
 import React, {useEffect, useState} from 'react';
 import {
   Button,
+  EmitterSubscription,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -21,6 +22,7 @@ import {
   View,
 } from 'react-native';
 import * as RNIap from 'react-native-iap';
+import {purchaseErrorListener, purchaseUpdatedListener} from 'react-native-iap';
 import {
   Colors,
   DebugInstructions,
@@ -62,6 +64,8 @@ const monospaceFont = Platform.select({
   android: 'monospace',
 });
 
+const subscriptionProductIds = ['another_subscription'];
+
 const Subscriptions: React.FC = () => {
   const [subscriptions, setSubscriptions] = useState<
     RNIap.Subscription[] | null
@@ -77,12 +81,31 @@ const Subscriptions: React.FC = () => {
     useState<Error | null>(null);
 
   useEffect(() => {
+    let updateListener: EmitterSubscription | undefined;
+    let errorListener: EmitterSubscription | undefined;
+
     RNIap.initConnection()
       .then(() => {
         console.log('Initialized IAP connection!');
+
+        updateListener = purchaseUpdatedListener(purchase => {
+          console.log('Purchase updated:', purchase);
+
+          RNIap.finishTransaction(purchase)
+            .then(value => {
+              console.log('Finished transaction:', value);
+            })
+            .catch(err => {
+              console.log('Failed to finish transaction:', err);
+            });
+        });
+
+        errorListener = purchaseErrorListener(err => {
+          console.group('Purchase error:', err);
+        });
       })
       .then(() => {
-        return RNIap.getSubscriptions(['another_subscription']);
+        return RNIap.getSubscriptions(subscriptionProductIds);
       })
       .then(subscriptions => {
         console.log('Subscriptions', subscriptions);
@@ -91,6 +114,11 @@ const Subscriptions: React.FC = () => {
       .catch(err => {
         console.log('Failed to initialize IAP connection:', err);
       });
+
+    return () => {
+      updateListener?.remove();
+      errorListener?.remove();
+    };
   }, []);
 
   return (
@@ -105,24 +133,29 @@ const Subscriptions: React.FC = () => {
         </Text>
       </View>
       <View>
-        {subscriptions && (
-          <Button
-            title="Request subscription"
-            onPress={() => {
-              setRequestedSubscriptionLoading(true);
-              // TODO: obfuscated account / profile id?
-              RNIap.requestSubscription('another_subscription')
-                .then(subscription => {
-                  setRequestedSubscription(subscription);
-                })
-                .catch(err => {
-                  setRequestedSubscriptionError(err);
-                })
-                .finally(() => {
-                  setRequestedSubscriptionLoading(false);
-                });
-            }}></Button>
-        )}
+        {subscriptions &&
+          subscriptions.map(subscription => {
+            return (
+              <Button
+                key={subscription.productId}
+                title={`Request subscription ${subscription.productId}`}
+                onPress={() => {
+                  setRequestedSubscriptionLoading(true);
+                  // TODO: obfuscated account / profile id?
+                  RNIap.requestSubscription(subscription.productId)
+                    .then(subscription => {
+                      setRequestedSubscription(subscription);
+                    })
+                    .catch(err => {
+                      setRequestedSubscriptionError(err);
+                    })
+                    .finally(() => {
+                      setRequestedSubscriptionLoading(false);
+                    });
+                }}></Button>
+            );
+          })}
+        {requestedSubscriptionLoading && <Text>Loading...</Text>}
         {requestedSubscription && (
           <Text style={{color: 'green'}}>
             Requested subscription:{' '}
